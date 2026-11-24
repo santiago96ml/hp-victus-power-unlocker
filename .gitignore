@@ -1,0 +1,6 @@
+backup/
+bin/
+*.log
+*.pow
+*.nip.bak
+.env

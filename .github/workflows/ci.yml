@@ -1,0 +1,31 @@
+name: HP Victus Power Unlocker CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell AST syntax & XML profile check
+        shell: pwsh
+        run: |
+          $errors = $null
+          foreach ($f in Get-ChildItem -Filter *.ps1) {
+            $tokens = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors -and $errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$($f.Name): $_" }
+              exit 1
+            }
+            Write-Host "AST OK: $($f.Name)"
+          }
+          [xml]$nip = Get-Content -LiteralPath "profiles/victus_max_perf.nip" -Raw
+          if (-not $nip.ArrayOfProfile.Profile.Settings.ProfileSetting) {
+            throw "Invalid NIP profile structure"
+          }
+          Write-Host "XML Profile OK: $(($nip.ArrayOfProfile.Profile.Settings.ProfileSetting).Count) settings"
